@@ -2,6 +2,12 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import FileExtensionValidator
 from shered.models import BaseModel
+from datetime import timedelta, datetime
+from config.settings import EMAIL_EXPIRATION_TIME, PHONE_EXPIRATION_TIME
+import uuid
+import random
+
+
 
 ORDINARY_USER, ADMIN, MANAGER = ('ordinary_user', 'admin', 'manager')
 NEW, CODE_VERIFY, DONE, PHOTO_DONE = ('new', 'code_verify', 'done','photo_done')
@@ -34,6 +40,47 @@ class CustomUser(AbstractUser, BaseModel):
     photo = models.ImageField(upload_to='/user_photo',validators=[FileExtensionValidator(allowed_extensions=['png', 'jpg', 'heic'])])
 
 
+    def __str__(self):
+        return self.username
+
+    def check_username(self):
+        if not self.username:
+            temp_username = f"username{uuid.uuid4().__str__().split('-')[-1]}"
+            while CustomUser.objects.filter(username=temp_username).first().exists():
+                temp_username += str(random.randint(0, 9))
+
+            self.username = temp_username
+
+    def check_password(self):
+        if not self.password:
+            temp_password = f"pass{uuid.uuid4().__str__().split('-')[-1]}"
+
+            self.username = temp_password
+
+    def hashing_pass(self):
+        if self.password.startwith('pbkdf2_sha256'):
+            self.password = self.set_password(self.password)
+
+
+    def check_email(self):
+        if self.email:
+            email_normalize = self.email.lower()
+            self.email = email_normalize
+
+
+    def clean(self):
+        self.check_email()
+        self.check_password()
+        self.hashing_pass()
+        self.check_username()
+        return super().clean()
+
+    def save(self):
+        self.clean()
+        return super().save()
+
+
+
 class CodeVerify(BaseModel):
     VERIFY_TYPE = (
         (VIA_EMAIL, VIA_EMAIL),
@@ -44,6 +91,18 @@ class CodeVerify(BaseModel):
     code = models.CharField(max_length=4)
     verify_type = models.CharField(max_length=30, choices=VERIFY_TYPE)
     expiration_time = models.DateTimeField()
+
+
+    def save(self, *args, **kwargs):
+        if self.verify_type == VIA_EMAIL:
+            self.expiration_time = datetime.now() + timedelta(minutes=EMAIL_EXPIRATION_TIME)
+        else:
+            self.expiration_time = datetime.now() + timedelta(minutes=PHONE_EXPIRATION_TIME)
+
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user.username} | {self.code}"
 
 
 

@@ -113,3 +113,8 @@ STATIC_URL = 'static/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = 'media'
+
+
+
+EMAIL_EXPIRATION_TIME = 3
+PHONE_EXPIRATION_TIME = 2
