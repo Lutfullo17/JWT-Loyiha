@@ -4,6 +4,7 @@ from django.core.validators import FileExtensionValidator
 from shered.models import BaseModel
 from datetime import timedelta, datetime
 from config.settings import EMAIL_EXPIRATION_TIME, PHONE_EXPIRATION_TIME
+from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 import random
 
@@ -66,6 +67,29 @@ class CustomUser(AbstractUser, BaseModel):
         if self.email:
             email_normalize = self.email.lower()
             self.email = email_normalize
+
+
+    def token(self):
+        refresh_token = RefreshToken.for_user(self)
+        data = {
+            'refresh': str(refresh_token),
+            'access': str(refresh_token.access_token)
+        }
+        return data
+
+    def generate_code(self,  verify_type):
+        code = random.randint(1000, 9999)
+        CodeVerify.objects.create(
+            code=code,
+            user=self,
+            verify_type=verify_type
+        )
+        return code
+
+
+
+
+
 
 
     def clean(self):
