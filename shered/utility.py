@@ -10,12 +10,15 @@ from datetime import datetime
 
 email_regex = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
 phone_regex = re.compile(r'^998([378][2]|(9[013-57-9]))\d{7}$')
+username_regex = re.compile(r'/^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i')
+
+
 
 def check_email_or_phone(user_input):
     print(user_input, '|||||||||||||||||||||||||||||||||')
-    if fullmatch(phone_regex, user_input):
+    if re.fullmatch(phone_regex, user_input):
         return 'phone'
-    elif fullmatch(email_regex, user_input):
+    elif re.fullmatch(email_regex, user_input):
         return 'email'
     else:
 
@@ -55,7 +58,20 @@ def send_verification_email(user):
         raise ValidationError({'message': 'Xato email'})
 
 
+def check_email_or_phone_or_username(user_input):
+    print(user_input, "++++++++++++++++++++")
+    if re.fullmatch(phone_regex, user_input):
+        return 'phone'
+    elif re.fullmatch(email_regex, user_input):
+        return 'email'
+    elif re.fullmatch(username_regex, user_input):
+        return 'username'
+    else:
+        raise ValidationError({
+            'status': status.HTTP_400_BAD_REQUEST,
+            'message': "Email yoki telefon raqamingiz xato kiritilgan"
 
+        })
 
 
 

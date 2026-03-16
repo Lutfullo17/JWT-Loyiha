@@ -1,7 +1,8 @@
+from http.client import responses
 
 from rest_framework.generics import CreateAPIView
 from rest_framework import permissions, status
-from .serializer import SignUpSerializer
+from .serializer import SignUpSerializer, UserChangeInfoSerializer, UserPhotoStatusSerializer , LoginSerializer
 from .models import (CustomUser,
     NEW, CODE_VERIFY, DONE, PHOTO_DONE,
     VIA_PHONE, VIA_EMAIL,
@@ -11,6 +12,8 @@ from rest_framework.views import APIView
 from datetime import datetime
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 
@@ -67,3 +70,79 @@ class GetNewCodeView(APIView):
         return Response(response_data)
 
 
+class UserChangeInfoView(APIView):
+    permission_classes = (permissions.IsAuthenticated, )
+    def put(self, request):
+        user = request.user
+        serializer = UserChangeInfoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.update(instance=user, validated_data=serializer.validated_data)
+
+        response = {
+            'message': 'Malumotlar qoshildi',
+            'status': status.HTTP_200_OK,
+            'access': user.token()['access'],
+            'refresh': user.token()['refresh'],
+        }
+        return Response(response)
+
+
+
+
+class UserChangePhotoView(APIView):
+    permission_classes = (permissions.IsAuthenticated, )
+    def patch(self, request):
+        user = request.user
+        serializer = UserPhotoStatusSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.update(instance=user, validated_data=serializer.validated_data)
+
+        response = {
+            'message': 'Photo qoshildi',
+            'status': status.HTTP_200_OK,
+            'access': user.token()['access'],
+            'refresh': user.token()['refresh'],
+        }
+        return Response(response)
+
+class Login(TokenObtainPairView):
+    serializer_class = LoginSerializer
+
+
+
+class Logout(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        refresh= self.request.data.get('refresh', None)
+        try:
+            refresh_token = RefreshToken(refresh)
+            refresh_token.blacklist()
+        except Exception as e:
+            raise ValidationError(detail=f"Xatolik: {e}")
+
+        else:
+            response_data = {
+                'status': status.HTTP_200_OK,
+                'message': 'Tizimdan chiqdingiz'
+            }
+            return Response(response_data)
+
+
+class LoginRefresh(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def get(self, request):
+        refresh = self.request.data.get('refresh', None)
+        try:
+            refresh_token = RefreshToken(refresh)
+            refresh_token.blacklist()
+        except Exception as e:
+            raise ValidationError(detail=f"Xatolik: {e}")
+
+        else:
+            response_data = {
+                'status': status.HTTP_201_CREATED,
+                'access': refresh_token.access_token
+            }
+            return Response(response_data)
