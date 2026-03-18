@@ -1,5 +1,5 @@
 from rest_framework import serializers, status
-from .models import CustomUser, VIA_EMAIL, VIA_PHONE, CODE_VERIFY, DONE, PHOTO_DONE
+from .models import CustomUser, VIA_EMAIL, VIA_PHONE, CODE_VERIFY, DONE, PHOTO_DONE, Post, Commit, Story, Follow, StoryView
 from rest_framework.exceptions import ValidationError
 from django.db.models import Q
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -276,3 +276,14 @@ class ResetPasswordSerializer(serializers.Serializer):
         instance.set_password(validated_data.get('password'))
         instance.save()
         return instance
+
+
+class PostSerializer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source='user.username')
+
+    class Meta:
+        model = Post
+        field = ['id', 'user', 'title', 'desc', 'image', 'created_at']
+
+
+
