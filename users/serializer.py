@@ -224,13 +224,55 @@ class LoginSerializer(TokenObtainPairSerializer):
             raise ValidationError({'message': 'Login Xato malumot', 'status': status.HTTP_400_BAD_REQUEST})
         return True
 
+class ForgotPasswordSerializer(serializers.Serializer):
+    user_input = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, attrs):
+        user_data = attrs.get('user_input', None)
+        if not user_data:
+            raise ValidationError("Email, Telefon raqam va username kiritng")
+        user_data_type = check_email_or_phone_or_username(user_data)
+        user = CustomUser.objects.filter(Q(username=user_data)| Q(email=user_data) | Q(phone_number=user_data))
+
+
+        if not user:
+            raise ValidationError("Email, Telefon raqam va username xato ")
+
+        if user and user_data_type == 'username':
+            if user.email:
+                code = user.generate_code()
+                print("E CODE++++++", code)
+            elif user.phone_number:
+                code = user.generate_code()
+                print("P  CODE++++++", code)
+            else:
+                print("Siz toliq utmagansiz")
+
+        elif user and user_data_type == 'email':
+            code = user.generate_code()
+            print("P  CODE++++++", code)
+        elif user and user_data_type == 'phone':
+            code = user.generate_code()
+            print("P  CODE++++++", code)
+        response_data = {
+            'status': status.HTTP_201_CREATED,
+            'message': "Kod yuborildi"
+        }
+        return response_data
 
 
 
 
+class ResetPasswordSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True, required=True, min_length=6)
+    confirm_password = serializers.CharField(write_only=True, required=True)
 
+    def validate(self, attrs):
+        if attrs.get('password') != attrs.get('confirm_password'):
+            raise ValidationError("Parollar bir-biriga mos kelmadi.")
+        return attrs
 
-
-
-
-
+    def update(self, instance, validated_data):
+        instance.set_password(validated_data.get('password'))
+        instance.save()
+        return instance

@@ -1,8 +1,10 @@
-from http.client import responses
+from functools import partial
 
-from rest_framework.generics import CreateAPIView
+from rest_framework.generics import CreateAPIView, UpdateAPIView
 from rest_framework import permissions, status
-from .serializer import SignUpSerializer, UserChangeInfoSerializer, UserPhotoStatusSerializer , LoginSerializer
+from yaml import serialize
+
+from .serializer import SignUpSerializer, UserChangeInfoSerializer, UserPhotoStatusSerializer , LoginSerializer, ResetPasswordSerializer, ForgotPasswordSerializer
 from .models import (CustomUser,
     NEW, CODE_VERIFY, DONE, PHOTO_DONE,
     VIA_PHONE, VIA_EMAIL,
@@ -143,6 +145,68 @@ class LoginRefresh(APIView):
         else:
             response_data = {
                 'status': status.HTTP_201_CREATED,
-                'access': refresh_token.access_token
+                'access': str(refresh_token.access_token)
             }
             return Response(response_data)
+
+
+class ForgotPasswordView(APIView):
+
+    permission_classes = (permissions.AllowAny, )
+
+    def post(self, request):
+        user = self.request.user
+        serializer = ForgotPasswordSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            return Response({
+                "status": True,
+                "message": "Kod yuborildi",
+                'access': user.token()['access'],
+                'refresh': user.token()['refresh'],
+
+            }, status=status.HTTP_200_OK)
+
+
+
+class ResetPasswordView(UpdateAPIView):
+    serializer_class = ResetPasswordSerializer
+    permission_classes = (permissions.AllowAny,)
+
+
+    def get_object(self):
+        return self.request.user
+
+
+    def update(self, request, *args, **kwargs):
+        user = self.get_object()
+        if user.auth_status != CODE_VERIFY:
+            raise ValidationError("Avval kodni tasdiqlash kerak")
+        serializer = self.get_serializer(user, data= request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        user.auth_status = DONE
+        user.save()
+
+        return Response({
+            'status': True,
+            'message': "Parol o'zgartirildi",
+            'access': user.token()['access'],
+            'refresh': user.token()['refresh']
+        }, status=status.HTTP_200_OK)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
