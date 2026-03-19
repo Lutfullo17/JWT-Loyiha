@@ -363,3 +363,60 @@ class LikeSerializer(serializers.ModelSerializer):
         else:
             Like.objects.create(user=user, post_id=post_id)
             return {"status": "liked"}
+
+
+class FollowSerializer(serializers.ModelSerializer):
+    following = serializers.IntegerField(required=True)
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        following_id = attrs.get("following")
+
+        if user.id == following_id:
+            raise ValidationError("O'zingizga follov qila olmaysiz")
+
+        if CustomUser.objects.filter(id= following_id).exists():
+            raise ValidationError("User topilmadi")
+
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        following_id = validated_data.get("following")
+
+        follow = Follow.objects.filter(follower= user, following_id=following_id).first()
+
+        if follow:
+            follow.delete()
+            return {"status": "unfollowed"}
+        else:
+            Follow.objects.create(follower=user, following_id=following_id)
+            return {"status": "followed"}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
