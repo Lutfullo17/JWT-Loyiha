@@ -1,10 +1,7 @@
-from functools import partial
-
 from rest_framework.generics import CreateAPIView, UpdateAPIView
 from rest_framework import permissions, status
-from yaml import serialize
-
-from .serializer import SignUpSerializer, UserChangeInfoSerializer, UserPhotoStatusSerializer , LoginSerializer, ResetPasswordSerializer, ForgotPasswordSerializer
+from .serializer import (SignUpSerializer, UserChangeInfoSerializer, UserPhotoStatusSerializer , LoginSerializer, ResetPasswordSerializer, \
+            ForgotPasswordSerializer, PostSerializer)
 from .models import (CustomUser,
     NEW, CODE_VERIFY, DONE, PHOTO_DONE,
     VIA_PHONE, VIA_EMAIL,
@@ -89,8 +86,6 @@ class UserChangeInfoView(APIView):
         return Response(response)
 
 
-
-
 class UserChangePhotoView(APIView):
     permission_classes = (permissions.IsAuthenticated, )
     def patch(self, request):
@@ -109,8 +104,6 @@ class UserChangePhotoView(APIView):
 
 class Login(TokenObtainPairView):
     serializer_class = LoginSerializer
-
-
 
 class Logout(APIView):
     permission_classes = (permissions.IsAuthenticated,)

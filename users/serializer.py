@@ -1,5 +1,9 @@
+from django.utils.lorem_ipsum import paragraph
 from rest_framework import serializers, status
-from .models import CustomUser, VIA_EMAIL, VIA_PHONE, CODE_VERIFY, DONE, PHOTO_DONE, Post, Commit, Story, Follow, StoryView
+from setuptools.config.pyprojecttoml import validate
+from telebot.util import validate_web_app_data
+
+from .models import CustomUser, VIA_EMAIL, VIA_PHONE, CODE_VERIFY, DONE, PHOTO_DONE, Post, Like, Commit, Story, Follow, StoryView
 from rest_framework.exceptions import ValidationError
 from django.db.models import Q
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -278,12 +282,84 @@ class ResetPasswordSerializer(serializers.Serializer):
         return instance
 
 
+
+
 class PostSerializer(serializers.ModelSerializer):
-    user = serializers.ReadOnlyField(source='user.username')
+    title = serializers.CharField(required=True)
+    desc = serializers.CharField(required=True)
+    image = serializers.ImageField(required=True)
 
-    class Meta:
-        model = Post
-        field = ['id', 'user', 'title', 'desc', 'image', 'created_at']
+    def validate(self, attrs):
+        if len(attrs['title']) <  3:
+            raise ValidationError('title kamida 3 ta bulish kerak')
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+
+        post = Post.objects.create(user=user,
+                title=validated_data.get('title'),
+                desc=validated_data.get('desc'),
+                image=validated_data.get('image'),
+        )
+        return post
 
 
 
+
+class CommitSerializer(serializers.ModelSerializer):
+    post = serializers.IntegerField(required=True)
+    text = serializers.CharField(required=True)
+    parent = serializers.IntegerField(required=True, allow_null=True)
+
+    def validate(self, attrs):
+        post_id = attrs.get('post')
+        parent_id = attrs.get('parent')
+
+        post = Post.objects.filter(id=post_id).first()
+        if not post:
+            raise ValidationError("post topilmadi")
+
+        if parent_id:
+            parent = Commit.objects.filter(id=parent_id).first()
+            if not parent:
+                raise ValidationError("Parent commit topilmadi")
+            if parent.post.id != post_id:
+                raise ValidationError("Parent boshqa postga tegishli")
+
+        return attrs
+
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+
+        commit = Commit.objects.create(
+            user=user,
+            post_id=validated_data.get('post'),
+            text = validated_data.get('text'),
+            parent_id= validated_data.get('parent')
+        )
+        return commit
+
+
+
+class LikeSerializer(serializers.ModelSerializer):
+    post = serializers.IntegerField(required=True)
+
+    def validate(self, attrs):
+        post = Post.objects.filter(id=attrs.get('post')).first()
+        if not post:
+            raise ValidationError('Post Topilmadi')
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        post_id = validated_data.get('post')
+
+        like = Like.objects.filter(user=user, post_id=post_id).first()
+
+        if like:
+            like.delete()
+            return {"status": "unliked"}
+        else:
+            Like.objects.create(user=user, post_id=post_id)
+            return {"status": "liked"}
