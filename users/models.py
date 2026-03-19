@@ -173,7 +173,7 @@ class Commit(models.Model):
 
 class Like(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="lekid")
 
     class Meta:
         unique_together = ('post', 'user')

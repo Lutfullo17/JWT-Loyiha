@@ -1,14 +1,14 @@
-from django.utils.lorem_ipsum import paragraph
 from rest_framework import serializers, status
-from setuptools.config.pyprojecttoml import validate
-from telebot.util import validate_web_app_data
-
 from .models import CustomUser, VIA_EMAIL, VIA_PHONE, CODE_VERIFY, DONE, PHOTO_DONE, Post, Like, Commit, Story, Follow, StoryView
 from rest_framework.exceptions import ValidationError
 from django.db.models import Q
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from shered.utility import check_email_or_phone, send_verification_email, check_email_or_phone_or_username
 from django.contrib.auth import authenticate
+from datetime import timedelta
+from django.utils  import timezone
+
+
 
 class SignUpSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(read_only=True)
@@ -392,6 +392,50 @@ class FollowSerializer(serializers.ModelSerializer):
         else:
             Follow.objects.create(follower=user, following_id=following_id)
             return {"status": "followed"}
+
+
+
+class StorySerializer(serializers.ModelSerializer):
+        file = serializers.FileField(required=True)
+        text = serializers.CharField(required=False, allow_blank=True)
+
+        def create(self, validated_data):
+            user = self.context['request'].user
+
+
+            story = Story.objects.create(user=user,
+                file=validated_data.get("file"),
+                text = validated_data.get("text", "")
+                )
+
+            return story
+
+
+
+class StoryViewSerializer(serializers.ModelSerializer):
+    story = serializers.IntegerField(required=True)
+
+    def  validate(self, attrs):
+        story = Story.objects.filter(id=attrs.get('story')).first()
+        if not story:
+            raise ValidationError("Story Topilmadi")
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        story_id = validated_data.get("story")
+
+        view = StoryView.objects.filter(user=user, story_id=story_id).first()
+
+        if not view:
+            StoryView.objects.create(
+                user=user, story_id=story_id
+            )
+        return {"status": "viewed"}
+
+
+
+
 
 
 

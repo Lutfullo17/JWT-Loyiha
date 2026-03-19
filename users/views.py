@@ -1,11 +1,13 @@
+from django.db.models.expressions import result
 from rest_framework.generics import CreateAPIView, UpdateAPIView
 from rest_framework import permissions, status
+from rest_framework.utils.representation import serializer_repr
+from yaml import serialize
+
 from .serializer import (SignUpSerializer, UserChangeInfoSerializer, UserPhotoStatusSerializer , LoginSerializer, ResetPasswordSerializer, \
-            ForgotPasswordSerializer, PostSerializer)
+            ForgotPasswordSerializer, PostSerializer, CommitSerializer, LikeSerializer)
 from .models import (CustomUser,
-    NEW, CODE_VERIFY, DONE, PHOTO_DONE,
-    VIA_PHONE, VIA_EMAIL,
-    CodeVerify
+    NEW, CODE_VERIFY, DONE, PHOTO_DONE, VIA_PHONE, VIA_EMAIL, CodeVerify, Post, Commit, Like, Story, StoryView, Follow
     )
 from rest_framework.views import APIView
 from datetime import datetime
@@ -189,17 +191,54 @@ class ResetPasswordView(UpdateAPIView):
         }, status=status.HTTP_200_OK)
 
 
+class PostView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        post = Post.objects.all().order_by('-id')
+        serializer = PostSerializer(post, many=True)
+        return Response(serializer.data)
 
 
 
 
+    def post(self, request):
+        serializer = PostSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        post = serializer.save()
+        return Response({
+            "id": post.id,
+            "message": "Post yaratildi"
+        }, status=201)
 
 
 
+class CommitAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        commits = Commit.objects.all().order_by('-id')
+        serializer = CommitSerializer(commits, many=True)
+        return Response(serializer.data)
+
+
+    def post(self, request):
+        serializer = CommitSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        commit = serializer.save()
+        return Response({
+            "id": commit.id,
+            "message": "Commit qo'shildi"
+        }, status=201)
 
 
 
+class LikeAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
-
-
+    def post(self, request):
+        serializer = LikeSerializer(data= request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+        return Response(result)
 
