@@ -5,7 +5,7 @@ from rest_framework.utils.representation import serializer_repr
 from yaml import serialize
 
 from .serializer import (SignUpSerializer, UserChangeInfoSerializer, UserPhotoStatusSerializer , LoginSerializer, ResetPasswordSerializer, \
-            ForgotPasswordSerializer, PostSerializer, CommitSerializer, LikeSerializer)
+            ForgotPasswordSerializer, PostSerializer, CommitSerializer, LikeSerializer, FollowSerializer, StorySerializer, StoryViewSerializer)
 from .models import (CustomUser,
     NEW, CODE_VERIFY, DONE, PHOTO_DONE, VIA_PHONE, VIA_EMAIL, CodeVerify, Post, Commit, Like, Story, StoryView, Follow
     )
@@ -200,8 +200,6 @@ class PostView(APIView):
         return Response(serializer.data)
 
 
-
-
     def post(self, request):
         serializer = PostSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -238,6 +236,43 @@ class LikeAPIView(APIView):
 
     def post(self, request):
         serializer = LikeSerializer(data= request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+        return Response(result)
+
+
+
+class FollowAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = FollowSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        result =serializer.save()
+        return Response(result)
+
+
+
+class StoryAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        stories = Story.objects.all().order_by('-id')
+        serializer = StorySerializer(stories, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = StorySerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        story = serializer.save()
+        return Response({"id": story.id, "message": "Story joylandi"}, status=201)
+
+
+class StoryViewAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = StorySerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         result = serializer.save()
         return Response(result)
