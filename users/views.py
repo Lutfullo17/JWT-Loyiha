@@ -271,11 +271,9 @@ class StoryAPIView(APIView):
 class StoryViewAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-
-
-
-
-
-
-
+    def post(self, request):
+        serializer = StorySerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+        return Response(result)
 
